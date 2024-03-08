@@ -1,0 +1,120 @@
+.TH BECH32 1 2024-03-08 libbech32
+.
+.SH NAME
+bech32 \- encode/decode data in Bech32/Bech32m format
+.
+.SH SYNOPSIS
+.SY bech32
+.OP \-h
+.OP \-m
+.I hrp
+{
+[\fIversion\fR]
+|
+.B \-d
+[\fB\-v\fR|\fIversion\fR]
+}
+.SY bech32m
+.OP \-h
+.I hrp
+{
+[\fIversion\fR]
+|
+.B \-d
+[\fB\-v\fR|\fIversion\fR]
+}
+.YS
+.
+.SH DESCRIPTION
+.B bech32
+reads data from \fBstdin\fR and writes its Bech32 encoding to \fBstdout\fR.
+If \fIversion\fR is given, its least significant 5 bits are encoded as a SegWit version field.
+.
+.SH OPTIONS
+.TP
+.BR \-d ", " \-\-decode
+Decode a Bech32 encoding from \fBstdin\fR and write the decoded data to \fBstdout\fR.
+If \fIversion\fR is given, assert that it matches the version field in the data.
+.TP
+.BR \-h ", " \-\-hex
+Use hexadecimal for data input/output.
+If this option is not specified, the data are read/written in raw binary.
+.TP
+.BR \-m ", " \-\-bech32m
+Use Bech32m instead of Bech32.
+Implied if the command is invoked as
+.BR bech32m .
+.TP
+.BR \-v ", " \-\-exit\-version
+Extract a 5-bit SegWit version field and return it as the exit status.
+.
+.SH EXIT STATUS
+.B bech32
+returns 0 as its exit status if no errors were encountered.
+If the \fB\-v\fR option is used, then the exit status is the 5-bit version field extracted from the encoding,
+which will be between 0 and 31 (although note that only versions 0 through 16 are legal SegWit versions).
+.PP
+If an error occurs, then the exit status is one of the following values, as specified in
+.BR sysexits.h (3):
+.TP
+.B 64
+.B Usage error.
+There was an error in the way the command was invoked.
+.TP
+.B 65
+.B Data error.
+There was an error in the data provided to the command,
+or the data did not satisfy the specified constraints.
+.TP
+.B 70
+.B Software error.
+An internal error occurred.
+This indicates a software bug or a hardware failure.
+.TP
+.B 74
+.B I/O error.
+An error occurred while reading from \fBstdin\fR or writing to \fBstdout\fR.
+.
+.SH EXAMPLES
+Encode a 2-byte, version-16 witness program, given in hexadecimal:
+.IP
+.EX
+$ \fBecho 751e | bech32m -h bc 16\fR
+bc1sw50qgdz25j
+.EE
+.PP
+Decode a Bech32m encoding to hexadecimal and return its witness version as the exit status:
+.IP
+.EX
+$ \fBecho bc1sw50qgdz25j | bech32m -dhv bc ; echo $?\fR
+751e
+16
+.EE
+.PP
+Encode a P2WPKH SegWit address, given its public key hash in hexadecimal:
+.IP
+.EX
+$ \fBecho 751e76e8199196d454941c45d1b3a323f1433bd6 | bech32 -h bc 0\fR
+bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4
+.EE
+.PP
+Decode the public key hash from a P2WPKH SegWit address,
+and assert that its human-readable prefix is \fBbc\fR and its witness version is 0:
+.IP
+.EX
+$ \fBecho bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4 | bech32 -dh bc 0\fR
+751e76e8199196d454941c45d1b3a323f1433bd6
+.EE
+.PP
+Encode an empty string in Bech32 format with no version field:
+.IP
+.EX
+$ \fBbech32 bc </dev/null\fR
+bc1gmk9yu
+.EE
+.
+.SH REPORTING BUGS
+Please report any bugs at the
+.UR https://github.com/whitslack/libbech32/issues
+libbech32 project page on GitHub
+.UE .
