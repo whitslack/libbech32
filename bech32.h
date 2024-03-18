@@ -1,4 +1,6 @@
 /// @file
+#ifndef BECH32_H_INCLUDED
+#define BECH32_H_INCLUDED
 
 #include <limits.h>
 #include <stddef.h>
@@ -433,3 +435,5 @@ std::tuple<std::vector<std::byte>, std::string_view, unsigned> decode_segwit_add
 } // namespace bech32
 
 #endif // defined(__cplusplus)
+
+#endif // !defined(BECH32_H_INCLUDED)
