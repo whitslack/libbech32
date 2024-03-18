@@ -1,11 +1,20 @@
 .TH BECH32 1 2024-03-08 libbech32
 .
 .SH NAME
-bech32 \- encode/decode data in Bech32/Bech32m format
+bech32 \- encode/decode data in
+@@IF_BLECH32@@
+Bech32/Bech32m/Blech32/Blech32m
+@@ELSE_BLECH32@@
+Bech32/Bech32m
+@@ENDIF_BLECH32@@
+format
 .
 .SH SYNOPSIS
 .SY bech32
 .OP \-h
+@@IF_BLECH32@@
+.OP \-l
+@@ENDIF_BLECH32@@
 .OP \-m
 .I hrp
 {
@@ -23,6 +32,26 @@ bech32 \- encode/decode data in Bech32/Bech32m format
 .B \-d
 [\fB\-v\fR|\fIversion\fR]
 }
+@@IF_BLECH32@@
+.SY blech32
+.OP \-h
+.I hrp
+{
+[\fIversion\fR]
+|
+.B \-d
+[\fB\-v\fR|\fIversion\fR]
+}
+.SY blech32m
+.OP \-h
+.I hrp
+{
+[\fIversion\fR]
+|
+.B \-d
+[\fB\-v\fR|\fIversion\fR]
+}
+@@ENDIF_BLECH32@@
 .YS
 .
 .SH DESCRIPTION
@@ -40,10 +69,22 @@ If \fIversion\fR is given, assert that it matches the version field in the data.
 Use hexadecimal for data input/output.
 If this option is not specified, the data are read/written in raw binary.
 .TP
-.BR \-m ", " \-\-bech32m
+@@IF_BLECH32@@
+.BR \-l ", " \-\-blech
+Use Blech32/Blech32m instead of Bech32/Bech32m.
+Implied if the command is invoked as
+.BR blech32 " or " blech32m .
+.TP
+.BR \-m ", " \-\-modified
+Use Bech32m/Blech32m instead of Bech32/Blech32.
+Implied if the command is invoked as
+.BR bech32m " or " blech32m .
+@@ELSE_BLECH32@@
+.BR \-m ", " \-\-modified
 Use Bech32m instead of Bech32.
 Implied if the command is invoked as
 .BR bech32m .
+@@ENDIF_BLECH32@@
 .TP
 .BR \-v ", " \-\-exit\-version
 Extract a 5-bit SegWit version field and return it as the exit status.

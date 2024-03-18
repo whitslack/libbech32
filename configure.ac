@@ -19,6 +19,12 @@ AC_ARG_ENABLE([assertions],
 	[enable_assertions=no])
 AM_CONDITIONAL([NDEBUG], [test x"$enable_assertions" = xno])
 
+AC_ARG_ENABLE([blech32],
+	[AS_HELP_STRING([--disable-blech32], [do not include Blech32 code in the library])],
+	[enable_blech32=$enableval],
+	[enable_blech32=yes])
+AM_CONDITIONAL([DISABLE_BLECH32], [test x"$enable_blech32" = xno])
+
 AC_ARG_ENABLE([c++],
 	[AS_HELP_STRING([--disable-c++], [do not include C++ code in the library])],
 	[enable_cxx=$enableval],

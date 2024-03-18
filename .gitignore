@@ -3,6 +3,7 @@
 *.o
 /doxygen-doc/
 /bech32
+/bech32.1
 /libbech32.pc
 /test
 

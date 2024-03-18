@@ -4,7 +4,7 @@ includedir=@includedir@
 libdir=@libdir@
 
 Name: libbech32
-Description: Library for Bech32/Bech32m encoding and decoding
+Description: Library for Bech32/Bech32m/Blech32/Blech32m encoding/decoding
 URL: https://github.com/whitslack/libbech32
 Version: @VERSION@
 Cflags: -I${includedir}

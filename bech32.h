@@ -2,6 +2,48 @@
 #ifndef BECH32_H_INCLUDED
 #define BECH32_H_INCLUDED
 
+#ifdef INCLUDED_FOR_BLECH32
+#	define bech32_checksum_t blech32_checksum_t
+#	define bech32_constant_t blech32_constant_t
+#	define BECH32M_CONST BLECH32M_CONST
+#	define bech32_encoder_state blech32_encoder_state
+#	define bech32_encoded_size blech32_encoded_size
+#	define bech32_encode_begin blech32_encode_begin
+#	define bech32_encode_data blech32_encode_data
+#	define bech32_encode_finish blech32_encode_finish
+#	define bech32_decoder_state blech32_decoder_state
+#	define bech32_decode_begin blech32_decode_begin
+#	define bech32_decode_bits_remaining blech32_decode_bits_remaining
+#	define bech32_decode_data blech32_decode_data
+#	define bech32_decode_finish blech32_decode_finish
+#	define bech32_address_encode blech32_address_encode
+#	define bech32_address_decode blech32_address_decode
+#else
+#	ifndef DISABLE_BLECH32
+#		undef BECH32_H_INCLUDED
+#		define INCLUDED_FOR_BLECH32
+#		include "bech32.h"
+#		undef INCLUDED_FOR_BLECH32
+#		define BECH32_H_SECOND_PASS
+#	endif
+#	undef bech32
+#	undef bech32_address_decode
+#	undef bech32_address_encode
+#	undef bech32_decode_finish
+#	undef bech32_decode_data
+#	undef bech32_decode_bits_remaining
+#	undef bech32_decode_begin
+#	undef bech32_decoder_state
+#	undef bech32_encode_finish
+#	undef bech32_encode_data
+#	undef bech32_encode_begin
+#	undef bech32_encoded_size
+#	undef bech32_encoder_state
+#	undef BECH32M_CONST
+#	undef bech32_constant_t
+#	undef bech32_checksum_t
+#endif
+
 #include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -11,6 +53,8 @@
 # define restrict __restrict
 extern "C" {
 #endif
+
+#ifndef INCLUDED_FOR_BLECH32
 
 typedef uint_fast32_t bech32_checksum_t;
 typedef uint_least32_t bech32_constant_t;
@@ -27,8 +71,35 @@ static const size_t
 	WITNESS_PROGRAM_MAX_SIZE = 40,
 	WITNESS_PROGRAM_PKH_SIZE = 20,
 	WITNESS_PROGRAM_SH_SIZE = 32,
+	WITNESS_PROGRAM_TR_SIZE = 32,
 	SEGWIT_ADDRESS_MIN_SIZE = BECH32_HRP_MIN_SIZE + 1/*separator*/ + 1/*version*/ +
 			((WITNESS_PROGRAM_MIN_SIZE * CHAR_BIT + 4) / 5) + BECH32_CHECKSUM_SIZE;
+
+#else // defined(INCLUDED_FOR_BLECH32)
+
+typedef uint_fast64_t blech32_checksum_t;
+typedef uint_least64_t blech32_constant_t;
+
+static const blech32_constant_t BLECH32M_CONST = UINT64_C(0x455972a3350f7a1);
+
+static const size_t
+	BLECH32_CHECKSUM_SIZE = 12,
+	BLECH32_HRP_MIN_SIZE = 1,
+	BLECH32_MAX_SIZE = 1000,
+	BLECH32_HRP_MAX_SIZE = BLECH32_MAX_SIZE - 1/*separator*/ - BLECH32_CHECKSUM_SIZE,
+	BLECH32_MIN_SIZE = BLECH32_HRP_MIN_SIZE + 1/*separator*/ + BLECH32_CHECKSUM_SIZE,
+	BLINDING_PUBKEY_SIZE = 33,
+	BLINDING_PROGRAM_MIN_SIZE = 2 + 0/*reference implementation omits blinding pubkey here*/,
+	BLINDING_PROGRAM_MAX_SIZE = 40 + BLINDING_PUBKEY_SIZE,
+	BLINDING_PROGRAM_PKH_SIZE = 20 + BLINDING_PUBKEY_SIZE,
+	BLINDING_PROGRAM_SH_SIZE = 32 + BLINDING_PUBKEY_SIZE,
+	BLINDING_PROGRAM_TR_SIZE = 32 + BLINDING_PUBKEY_SIZE,
+	BLINDING_ADDRESS_MIN_SIZE = BLECH32_HRP_MIN_SIZE + 1/*separator*/ + 1/*version*/ +
+			((BLINDING_PROGRAM_MIN_SIZE * CHAR_BIT + 4) / 5) + BLECH32_CHECKSUM_SIZE;
+
+#endif // defined(INCLUDED_FOR_BLECH32)
+
+#ifndef BECH32_H_SECOND_PASS
 
 static const unsigned WITNESS_MAX_VERSION = 16;
 
@@ -53,6 +124,8 @@ enum bech32_error {
 	SEGWIT_PROGRAM_TOO_LONG = -14,
 	SEGWIT_PROGRAM_ILLEGAL_SIZE = -15,
 };
+
+#endif // !defined(BECH32_H_SECOND_PASS)
 
 
 /**
@@ -285,7 +358,7 @@ ssize_t bech32_decode_finish(
  * @c BECH32_HRP_ILLEGAL_CHAR because the human-readable prefix contains an illegal character, or
  * @c BECH32_CHECKSUM_FAILURE because the encoding failed its internal checksum check (due to a software bug or hardware failure).
  */
-ssize_t segwit_address_encode(
+ssize_t bech32_address_encode(
 		char *restrict address,
 		size_t n_address,
 		const unsigned char *restrict program,
@@ -324,7 +397,7 @@ ssize_t segwit_address_encode(
  * @c BECH32_PADDING_ERROR because of a padding error, or
  * @c BECH32_CHECKSUM_FAILURE because checksum verification failed.
  */
-ssize_t segwit_address_decode(
+ssize_t bech32_address_decode(
 		unsigned char *restrict program,
 		size_t n_program,
 		const char *restrict address,
@@ -334,10 +407,22 @@ ssize_t segwit_address_decode(
 	__attribute__ ((__access__ (write_only, 1), __access__ (read_only, 3), __access__ (write_only, 5), __access__ (write_only, 6), __nonnull__, __nothrow__, __warn_unused_result__));
 
 
+#ifndef BECH32_H_SECOND_PASS
+ssize_t segwit_address_encode // line break so we don't generate man pages for these deprecated symbols
+	(char *restrict, size_t, const unsigned char *restrict, size_t, const char *restrict, size_t, unsigned)
+	__attribute__ ((__deprecated__ ("renamed to bech32_address_encode")));
+ssize_t segwit_address_decode // ditto
+	(unsigned char *restrict, size_t, const char *restrict, size_t, size_t *restrict, unsigned *restrict)
+	__attribute__ ((__deprecated__ ("renamed to bech32_address_decode")));
+#endif
+
+
 #ifdef __cplusplus
 } // extern "C"
 # undef restrict
 
+
+#ifndef BECH32_H_SECOND_PASS
 
 #include <climits>
 #include <cstddef>
@@ -359,6 +444,16 @@ public:
 	explicit Error(enum ::bech32_error error);
 
 };
+
+
+} // namespace bech32
+
+#endif // !defined(BECH32_H_SECOND_PASS)
+
+#ifdef INCLUDED_FOR_BLECH32
+#	define bech32 blech32
+#endif
+namespace bech32 {
 
 
 class Encoder {
@@ -437,7 +532,10 @@ std::tuple<std::vector<std::byte>, std::string_view, unsigned> decode_segwit_add
 
 
 } // namespace bech32
+#undef bech32
 
 #endif // defined(__cplusplus)
+
+#undef BECH32_H_SECOND_PASS
 
 #endif // !defined(BECH32_H_INCLUDED)

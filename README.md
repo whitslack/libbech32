@@ -1,13 +1,13 @@
 # libbech32
-**Library for Bech32/Bech32m encoding and decoding**
+**Library for Bech32/Bech32m/Blech32/Blech32m encoding/decoding**
 
-Libbech32 is a C library for encoding and decoding SegWit addresses and arbitrary bit strings in Bech32/Bech32m format. It offers three interfaces: a **low-level API** for working with arbitrary bit strings, a **high-level API** for working with SegWit Bitcoin addresses specifically, and a **command-line utility** for Bech32/Bech32m encoding/decoding from `stdin` to `stdout`. C++ wrappers are optionally provided for both APIs.
+Libbech32 is a C library for encoding and decoding SegWit addresses and arbitrary bit strings in Bech32/Bech32m/Blech32/Blech32m format. It offers three interfaces: a **low-level API** for working with arbitrary bit strings, a **high-level API** for working with SegWit Bitcoin addresses specifically, and a **command-line utility** for Bech32/Bech32m/Blech32/Blech32m encoding/decoding from `stdin` to `stdout`. C++ wrappers are optionally provided for both APIs.
 
 This document gives a general overview. Please refer to the auto-generated [Doxygen documentation](https://whitslack.github.io/libbech32/bech32_8h.html) for specific details.
 
 ## Low-level API
 
-The low-level API allows encoding/decoding arbitrary bit strings to/from Bech32/Bech32m format. Bits are supplied to the encoder, or extracted from the decoder, through function calls that pass a buffer and a bit length. In the case that the bit length is not evenly divisible by 8, the bits of the last byte in the buffer are aligned to the least significant bit. Successive calls pack/unpack bit strings in the encoding without introducing any padding between segments.
+The low-level API allows encoding/decoding arbitrary bit strings to/from Bech32/Bech32m/Blech32/Blech32m format. Bits are supplied to the encoder, or extracted from the decoder, through function calls that pass a buffer and a bit length. In the case that the bit length is not evenly divisible by 8, the bits of the last byte in the buffer are aligned to the least significant bit. Successive calls pack/unpack bit strings in the encoding without introducing any padding between segments.
 
 ### Encoding
 
@@ -136,6 +136,10 @@ int main() {
 }
 ```
 
+### Blech32/Blech32m
+
+Unless configured with `--disable-blech32`, the low-level API supports Blech32/Blech32m encoding/decoding via structures and functions whose names are prefixed by `blech32_` instead of `bech32_`. Aside from the names, the API is the same. Likewise, the C++ wrappers are in the `blech32` namespace instead of `bech32`.
+
 ## High-level API
 
 The high-level API allows encoding/decoding a SegWit address with a single function call.
@@ -230,11 +234,19 @@ int main() {
 }
 ```
 
+### Blech32/Blech32m
+
+Unless configured with `--disable-blech32`, the high-level API supports encoding/decoding of blinding SegWit addresses via functions whose names are prefixed by `blech32_` instead of `segwit_`. Aside from the names, the API is the same. Likewise, the C++ wrappers are in the `blech32` namespace instead of `bech32`.
+
 ## Command-line utility
 
 The library comes with a command-line utility for encoding/decoding Bech32/Bech32m. It supports only data payloads a whole number of bytes in size, optionally prefixed by a 5-bit version field such as in SegWit addresses.
 
-**Usage:** `bech32` \[`-h`] \[`-m`] *hrp* { \[*version*] | `-d` \[`-v`|*version*] }
+**Usage:**  
+`bech32` \[`-h`] \[`-l`] \[`-m`] *hrp* { \[*version*] | `-d` \[`-v`|*version*] }  
+`bech32m` \[`-h`] *hrp* { \[*version*] | `-d` \[`-v`|*version*] }  
+`blech32` \[`-h`] *hrp* { \[*version*] | `-d` \[`-v`|*version*] }  
+`blech32m` \[`-h`] *hrp* { \[*version*] | `-d` \[`-v`|*version*] }
 
 Reads data from `stdin` and writes its Bech32 encoding to `stdout`.
 If *version* is given, its least significant 5 bits are encoded as a SegWit version field.
@@ -248,9 +260,13 @@ If <em>version</em> is given, assert that it matches the version field in the da
 <dd>Use hexadecimal for data input/output.
 If this option is not specified, the data are read/written in raw binary.</dd>
 
-<dt><code>-m</code>,<code>--bech32m</code></dt>
-<dd>Use Bech32m instead of Bech32.
-Implied if the command is invoked as <code>bech32m</code>.</dd>
+<dt><code>-l</code>,<code>--blech</code></dt>
+<dd>Use Blech32/Blech32m instead of Bech32/Bech32m.
+Implied if the command is invoked as <code>blech32</code> or <code>blech32m</code>.</dd>
+
+<dt><code>-m</code>,<code>--modified</code></dt>
+<dd>Use Bech32m/Blech32m instead of Bech32/Blech32.
+Implied if the command is invoked as <code>bech32m</code> or <code>blech32m</code>.</dd>
 
 <dt><code>-v</code>,<code>--exit-version</code></dt>
 <dd>Extract a 5-bit SegWit version field and return it as the exit status.</dd>

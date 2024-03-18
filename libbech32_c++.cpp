@@ -1,6 +1,22 @@
+#ifdef INCLUDED_FOR_BLECH32
+#	define BECH32_CHECKSUM_SIZE BLECH32_CHECKSUM_SIZE
+#else
+#	ifndef DISABLE_BLECH32
+#		define INCLUDED_FOR_BLECH32
+#		include "libbech32_c++.cpp"
+#		undef INCLUDED_FOR_BLECH32
+#		undef BECH32_H_INCLUDED
+#		define DISABLE_BLECH32
+#		define BECH32_H_SECOND_PASS
+#		define LIBBECH32_CXX_CPP_SECOND_PASS
+#	endif
+#	undef BECH32_CHECKSUM_SIZE
+#endif
+
 #include "bech32.h"
 
 
+#ifndef LIBBECH32_CXX_CPP_SECOND_PASS
 static inline const char * __attribute__ ((__const__)) error_to_message(enum ::bech32_error error) {
 	switch (error) {
 		case BECH32_TOO_SHORT:
@@ -36,13 +52,26 @@ static inline const char * __attribute__ ((__const__)) error_to_message(enum ::b
 	}
 	std::abort(); // should not be reachable
 }
+#endif
 
 
+#ifndef LIBBECH32_CXX_CPP_SECOND_PASS
 namespace bech32 {
 
 
 Error::Error(enum ::bech32_error error) : std::runtime_error(::error_to_message(error)), error(error) {
 }
+
+
+} // namespace bech32
+#endif // !defined(LIBBECH32_CXX_CPP_SECOND_PASS)
+
+
+#ifdef INCLUDED_FOR_BLECH32
+using namespace bech32;
+#	define bech32 blech32
+#endif
+namespace bech32 {
 
 
 void Encoder::reset(std::string_view hrp, size_t nbits_reserve) {
@@ -105,7 +134,7 @@ size_t Decoder::finish(bech32_constant_t constant) {
 std::string encode_segwit_address(const void *program, size_t n_program, std::string_view hrp, unsigned version) {
 	std::string address;
 	address.resize(::bech32_encoded_size(hrp.size(), 5/*version*/ + n_program * CHAR_BIT, 0));
-	if (auto ret = ::segwit_address_encode(address.data(), address.size() + 1/*null*/, static_cast<const unsigned char *>(program), n_program, hrp.data(), hrp.size(), version); ret < 0)
+	if (auto ret = ::bech32_address_encode(address.data(), address.size() + 1/*null*/, static_cast<const unsigned char *>(program), n_program, hrp.data(), hrp.size(), version); ret < 0)
 		throw Error(static_cast<enum ::bech32_error>(ret));
 	else
 		address.resize(static_cast<size_t>(ret));
@@ -117,7 +146,7 @@ std::tuple<std::vector<std::byte>, std::string_view, unsigned> decode_segwit_add
 	auto &[program, hrp, version] = ret;
 	program.resize((address.size() - 1/*hrp*/ - 1/*separator*/ - BECH32_CHECKSUM_SIZE) * 5 / CHAR_BIT);
 	size_t n_hrp;
-	if (auto ret = ::segwit_address_decode(reinterpret_cast<unsigned char *>(program.data()), program.size(), address.data(), address.size(), &n_hrp, &version); ret < 0)
+	if (auto ret = ::bech32_address_decode(reinterpret_cast<unsigned char *>(program.data()), program.size(), address.data(), address.size(), &n_hrp, &version); ret < 0)
 		throw Error(static_cast<enum ::bech32_error>(ret));
 	else
 		program.resize(static_cast<size_t>(ret));
@@ -127,3 +156,4 @@ std::tuple<std::vector<std::byte>, std::string_view, unsigned> decode_segwit_add
 
 
 } // namespace bech32
+#undef bech32

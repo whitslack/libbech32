@@ -1,5 +1,5 @@
 PROJECT_NAME           = libbech32
-PROJECT_BRIEF          = "Library for Bech32/Bech32m encoding and decoding"
+PROJECT_BRIEF          = "Library for Bech32/Bech32m/Blech32/Blech32m encoding/decoding"
 OUTPUT_DIRECTORY       = $(DOCDIR)
 OPTIMIZE_OUTPUT_FOR_C  = YES
 INLINE_SIMPLE_STRUCTS  = YES
