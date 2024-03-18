@@ -62,7 +62,7 @@ void Encoder::write(const void *in, size_t nbits_in) {
 	out.resize(state.out - out.data());
 }
 
-std::string Encoder::finish(uint_least32_t constant) {
+std::string Encoder::finish(bech32_constant_t constant) {
 	size_t written = out.size();
 	out.resize(written + (state.n_out = ::bech32_encoded_size(0, state.nbits, 0) - 1));
 	state.out = out.data() + written;
@@ -94,7 +94,7 @@ std::vector<std::byte> Decoder::read(size_t nbits) {
 	return out;
 }
 
-size_t Decoder::finish(uint_least32_t constant) {
+size_t Decoder::finish(bech32_constant_t constant) {
 	if (auto ret = ::bech32_decode_finish(&state, constant); ret < 0)
 		throw Error(static_cast<enum ::bech32_error>(ret));
 	else
@@ -115,7 +115,7 @@ std::string encode_segwit_address(const void *program, size_t n_program, std::st
 std::tuple<std::vector<std::byte>, std::string_view, unsigned> decode_segwit_address(std::string_view address) {
 	std::tuple<std::vector<std::byte>, std::string_view, unsigned> ret;
 	auto &[program, hrp, version] = ret;
-	program.resize((address.size() - 1/*hrp*/ - 1/*separator*/ - 6/*checksum*/) * 5 / CHAR_BIT);
+	program.resize((address.size() - 1/*hrp*/ - 1/*separator*/ - BECH32_CHECKSUM_SIZE) * 5 / CHAR_BIT);
 	size_t n_hrp;
 	if (auto ret = ::segwit_address_decode(reinterpret_cast<unsigned char *>(program.data()), program.size(), address.data(), address.size(), &n_hrp, &version); ret < 0)
 		throw Error(static_cast<enum ::bech32_error>(ret));

@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
 
 	unsigned char in[BECH32_MAX_SIZE];
 	size_t n_in = 0, nmax_in = decode ? BECH32_MAX_SIZE :
-			(BECH32_MAX_SIZE - n_hrp - 1/*separator*/ - (version >= 0) - 6/*checksum*/) * 5 / CHAR_BIT;
+			(BECH32_MAX_SIZE - n_hrp - 1/*separator*/ - (version >= 0) - BECH32_CHECKSUM_SIZE) * 5 / CHAR_BIT;
 	if (decode || hex) {
 		for (int c;;) {
 			if (decode ? (c = getchar()) < 0 || c == '\n' : (c = gethex()) < 0) {
@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
 			errx(EX_DATAERR, errmsg((enum bech32_error) ret));
 	}
 	else {
-		n_out = n_hrp + 1/*separator*/ + (version >= 0) + (n_in * CHAR_BIT + 4) / 5 + 6/*checksum*/;
+		n_out = n_hrp + 1/*separator*/ + (version >= 0) + (n_in * CHAR_BIT + 4) / 5 + BECH32_CHECKSUM_SIZE;
 		assert(n_out <= sizeof out);
 		ssize_t ret;
 		struct bech32_encoder_state state;

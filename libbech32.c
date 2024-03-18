@@ -13,7 +13,7 @@
 #define _pure __attribute__ ((__pure__))
 
 
-static inline uint_fast32_t _const polymod(uint_fast32_t chk) {
+static inline bech32_checksum_t _const polymod(bech32_checksum_t chk) {
 	static const uint_least32_t LUT[32] = {
 #define _(i) ( \
 			(((i) & 1 << 0) ? UINT32_C(0x3b6a57b2) : 0) ^ \
@@ -28,7 +28,7 @@ static inline uint_fast32_t _const polymod(uint_fast32_t chk) {
 	return (chk & UINT32_C(0x1FFFFFF)) << 5 ^ LUT[chk >> 25];
 }
 
-static inline uint_fast32_t _pure polymod_hrp(uint_fast32_t chk, const char *hrp, size_t n_hrp) {
+static inline bech32_checksum_t _pure polymod_hrp(bech32_checksum_t chk, const char *hrp, size_t n_hrp) {
 	for (size_t i = 0; i < n_hrp; ++i)
 		chk = polymod(chk) ^ (hrp[i] >> 5 | (hrp[i] >= 'A' && hrp[i] <= 'Z'));
 	chk = polymod(chk);
@@ -56,7 +56,7 @@ static inline bool _pure is_mixed_case(const char *in, size_t n_in) {
 size_t bech32_encoded_size(size_t n_hrp, size_t nbits_in, size_t n_pad) {
 	size_t n_out;
 	if (_unlikely(__builtin_uaddl_overflow(nbits_in, 4, &nbits_in) ||
-			__builtin_uaddl_overflow(n_hrp, 1/*separator*/ + nbits_in / 5 + 6/*checksum*/, &n_out) ||
+			__builtin_uaddl_overflow(n_hrp, 1/*separator*/ + nbits_in / 5 + BECH32_CHECKSUM_SIZE, &n_out) ||
 			__builtin_uaddl_overflow(n_out, n_pad, &n_out)))
 		return SIZE_MAX;
 	return n_out;
@@ -68,7 +68,7 @@ static void encode(struct bech32_encoder_state *restrict state) {
 		's', '3', 'j', 'n', '5', '4', 'k', 'h', 'c', 'e', '6', 'm', 'u', 'a', '7', 'l'
 	};
 	while (state->nbits >= 5) {
-		uint_fast32_t v = state->bits >> (state->nbits -= 5) & 0x1F;
+		bech32_checksum_t v = state->bits >> (state->nbits -= 5) & 0x1F;
 		state->chk = polymod(state->chk) ^ v;
 		*state->out++ = ENCODE[v], --state->n_out;
 	}
@@ -82,7 +82,7 @@ enum bech32_error bech32_encode_begin(struct bech32_encoder_state *restrict stat
 	for (size_t i = 0; i < n_hrp; ++i)
 		if (_unlikely(hrp[i] < 0x21 || hrp[i] >= 0x7F))
 			return BECH32_HRP_ILLEGAL_CHAR;
-	if (_unlikely(__builtin_usubl_overflow(n_out, n_hrp, &n_out) || n_out < 1/*separator*/ + 6/*checksum*/))
+	if (_unlikely(__builtin_usubl_overflow(n_out, n_hrp, &n_out) || n_out < 1/*separator*/ + BECH32_CHECKSUM_SIZE))
 		return BECH32_BUFFER_INADEQUATE;
 	for (size_t i = 0; i < n_hrp; ++i)
 		out[i] = hrp[i] | (hrp[i] >= 'A' && hrp[i] <= 'Z' ? 0x20 : 0);
@@ -109,17 +109,17 @@ enum bech32_error bech32_encode_data(struct bech32_encoder_state *restrict state
 	}
 }
 
-enum bech32_error bech32_encode_finish(struct bech32_encoder_state *restrict state, uint_least32_t constant) {
-	if (_unlikely(state->n_out < !!state->nbits + 6/*checksum*/))
+enum bech32_error bech32_encode_finish(struct bech32_encoder_state *restrict state, bech32_constant_t constant) {
+	if (_unlikely(state->n_out < !!state->nbits + BECH32_CHECKSUM_SIZE))
 		return BECH32_BUFFER_INADEQUATE;
 	if (state->nbits) {
 		state->bits <<= 5 - state->nbits, state->nbits = 5;
 		encode(state);
 	}
 	state->bits = state->chk;
-	for (int i = 0; i < 6; ++i)
+	for (size_t i = 0; i < BECH32_CHECKSUM_SIZE; ++i)
 		state->bits = polymod(state->bits);
-	state->bits ^= constant, state->nbits = 30;
+	state->bits ^= constant, state->nbits = BECH32_CHECKSUM_SIZE * 5;
 	encode(state);
 	if (_unlikely(state->chk != constant))
 		return BECH32_CHECKSUM_FAILURE;
@@ -169,7 +169,7 @@ ssize_t bech32_decode_begin(struct bech32_decoder_state *restrict state, const c
 	}
 	if (_unlikely(is_mixed_case(in, n_in)))
 		return BECH32_MIXED_CASE;
-	if (_unlikely(__builtin_usubl_overflow(n_in, n_hrp + 1/*separator*/ + 6/*checksum*/, &n_in)))
+	if (_unlikely(__builtin_usubl_overflow(n_in, n_hrp + 1/*separator*/ + BECH32_CHECKSUM_SIZE, &n_in)))
 		return BECH32_TOO_SHORT;
 	state->in = in + n_hrp + 1/*separator*/, state->n_in = n_in;
 	state->nbits = 0;
@@ -193,12 +193,12 @@ enum bech32_error bech32_decode_data(struct bech32_decoder_state *restrict state
 			return 0;
 }
 
-ssize_t bech32_decode_finish(struct bech32_decoder_state *restrict state, uint_least32_t constant) {
+ssize_t bech32_decode_finish(struct bech32_decoder_state *restrict state, bech32_constant_t constant) {
 	ssize_t nbits_pad = state->nbits;
 	if (_unlikely(state->n_in || nbits_pad && (state->bits & (1 << nbits_pad) - 1)))
 		return BECH32_PADDING_ERROR;
-	state->n_in = 6, state->nbits = 0;
-	if (_unlikely(!decode(state, 30)))
+	state->n_in = BECH32_CHECKSUM_SIZE, state->nbits = 0;
+	if (_unlikely(!decode(state, BECH32_CHECKSUM_SIZE * 5)))
 		return BECH32_ILLEGAL_CHAR;
 	state->nbits = 0;
 	if (_unlikely(state->chk != constant || state->n_in))
@@ -216,7 +216,7 @@ ssize_t segwit_address_encode(char *restrict address, size_t n_address, const un
 		return SEGWIT_VERSION_ILLEGAL;
 	if (version == 0 && _unlikely(!(n_program == WITNESS_PROGRAM_PKH_SIZE || n_program == WITNESS_PROGRAM_SH_SIZE)))
 		return SEGWIT_PROGRAM_ILLEGAL_SIZE;
-	size_t n_actual = n_hrp + 1/*separator*/ + 1/*version*/ + (n_program * CHAR_BIT + 4) / 5 + 6/*checksum*/;
+	size_t n_actual = n_hrp + 1/*separator*/ + 1/*version*/ + (n_program * CHAR_BIT + 4) / 5 + BECH32_CHECKSUM_SIZE;
 	if (_unlikely(n_address < n_actual + 1/*null terminator*/))
 		return BECH32_BUFFER_INADEQUATE;
 	enum bech32_error error;
@@ -238,7 +238,7 @@ ssize_t segwit_address_decode(unsigned char *restrict program, size_t n_program,
 	struct bech32_decoder_state state;
 	if (_unlikely((ret = bech32_decode_begin(&state, address, n_address)) < 0))
 		return ret;
-	size_t n_actual = (n_address - ret/*hrp*/ - 1/*separator*/ - 1/*version*/ - 6/*checksum*/) * 5 / CHAR_BIT;
+	size_t n_actual = (n_address - ret/*hrp*/ - 1/*separator*/ - 1/*version*/ - BECH32_CHECKSUM_SIZE) * 5 / CHAR_BIT;
 	if (_unlikely(n_actual < WITNESS_PROGRAM_MIN_SIZE))
 		return SEGWIT_PROGRAM_TOO_SHORT;
 	if (_unlikely(n_actual > WITNESS_PROGRAM_MAX_SIZE))

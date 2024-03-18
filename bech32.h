@@ -12,19 +12,23 @@
 extern "C" {
 #endif
 
-static const uint_least32_t BECH32M_CONST = UINT32_C(0x2bc830a3);
+typedef uint_fast32_t bech32_checksum_t;
+typedef uint_least32_t bech32_constant_t;
+
+static const bech32_constant_t BECH32M_CONST = UINT32_C(0x2bc830a3);
 
 static const size_t
+	BECH32_CHECKSUM_SIZE = 6,
 	BECH32_HRP_MIN_SIZE = 1,
-	BECH32_HRP_MAX_SIZE = 83,
-	BECH32_MIN_SIZE = BECH32_HRP_MIN_SIZE + 1/*separator*/ + 6/*checksum*/,
 	BECH32_MAX_SIZE = 90,
+	BECH32_HRP_MAX_SIZE = BECH32_MAX_SIZE - 1/*separator*/ - BECH32_CHECKSUM_SIZE,
+	BECH32_MIN_SIZE = BECH32_HRP_MIN_SIZE + 1/*separator*/ + BECH32_CHECKSUM_SIZE,
 	WITNESS_PROGRAM_MIN_SIZE = 2,
 	WITNESS_PROGRAM_MAX_SIZE = 40,
 	WITNESS_PROGRAM_PKH_SIZE = 20,
 	WITNESS_PROGRAM_SH_SIZE = 32,
 	SEGWIT_ADDRESS_MIN_SIZE = BECH32_HRP_MIN_SIZE + 1/*separator*/ + 1/*version*/ +
-			((WITNESS_PROGRAM_MIN_SIZE * CHAR_BIT + 4) / 5) + 6/*checksum*/;
+			((WITNESS_PROGRAM_MIN_SIZE * CHAR_BIT + 4) / 5) + BECH32_CHECKSUM_SIZE;
 
 static const unsigned WITNESS_MAX_VERSION = 16;
 
@@ -76,12 +80,12 @@ struct bech32_encoder_state {
 	 *
 	 * Only the #nbits least significant bits of this field are valid.
 	 */
-	uint_fast32_t bits;
+	bech32_checksum_t bits;
 
 	/**
 	 * @brief The intermediate checksum state.
 	 */
-	uint_fast32_t chk;
+	bech32_checksum_t chk;
 
 };
 
@@ -150,7 +154,7 @@ enum bech32_error bech32_encode_data(
  */
 enum bech32_error bech32_encode_finish(
 		struct bech32_encoder_state *restrict state,
-		uint_least32_t constant)
+		bech32_constant_t constant)
 	__attribute__ ((__access__ (read_write, 1), __nonnull__, __nothrow__, __warn_unused_result__));
 
 
@@ -180,12 +184,12 @@ struct bech32_decoder_state {
 	 *
 	 * Only the #nbits least significant bits of this field are valid.
 	 */
-	uint_fast32_t bits;
+	bech32_checksum_t bits;
 
 	/**
 	 * @brief The intermediate checksum state.
 	 */
-	uint_fast32_t chk;
+	bech32_checksum_t chk;
 
 };
 
@@ -253,7 +257,7 @@ enum bech32_error bech32_decode_data(
  */
 ssize_t bech32_decode_finish(
 		struct bech32_decoder_state *restrict state,
-		uint_least32_t constant)
+		bech32_constant_t constant)
 	__attribute__ ((__access__ (read_write, 1), __nonnull__, __nothrow__, __warn_unused_result__));
 
 
@@ -378,7 +382,7 @@ public:
 
 	void write(const void *in, size_t nbits_in);
 
-	std::string finish(uint_least32_t constant = BECH32M_CONST);
+	std::string finish(bech32_constant_t constant = BECH32M_CONST);
 
 };
 
@@ -415,7 +419,7 @@ public:
 		return this->read(this->bits_remaining() & ~static_cast<size_t>(CHAR_BIT - 1));
 	}
 
-	size_t finish(uint_least32_t constant = BECH32M_CONST);
+	size_t finish(bech32_constant_t constant = BECH32M_CONST);
 
 };
 
