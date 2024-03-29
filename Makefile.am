@@ -74,12 +74,16 @@ endif
 
 install-exec-hook:
 	cd $(DESTDIR)$(bindir) && { test -e bech32m$(EXEEXT) || $(LN_S) -n bech32$(EXEEXT) bech32m$(EXEEXT) ; }
-	cd $(DESTDIR)$(man1dir) && { test -e bech32m.1 || $(LN_S) -n bech32.1 bech32m.1 ; }
 if !DISABLE_BLECH32
 	cd $(DESTDIR)$(bindir) && { \
 		test -e blech32$(EXEEXT) || $(LN_S) -n bech32$(EXEEXT) blech32$(EXEEXT) ; \
 		test -e blech32m$(EXEEXT) || $(LN_S) -n bech32$(EXEEXT) blech32m$(EXEEXT) ; \
 	}
+endif
+
+install-data-hook:
+	cd $(DESTDIR)$(man1dir) && { test -e bech32m.1 || $(LN_S) -n bech32.1 bech32m.1 ; }
+if !DISABLE_BLECH32
 	cd $(DESTDIR)$(man1dir) && { \
 		test -e blech32.1 || $(LN_S) -n bech32.1 blech32.1 ; \
 		test -e blech32m.1 || $(LN_S) -n bech32.1 blech32m.1 ; \
